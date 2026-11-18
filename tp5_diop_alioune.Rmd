@@ -59,3 +59,74 @@ meme_structure(d99)
 Les quatre imports ont la même structure que `ref` (24 lignes, 7 colonnes, mêmes noms, `Modele` en caractère et les six autres variables en entier). `l3` et `sn` sont même strictement identiques à `ref` (`identical(l3, ref)` : `r identical(l3, ref)`, `identical(sn, ref)` : `r identical(sn, ref)`).
 
 
+## A2. Comparer les valeurs manquantes
+
+### a.
+
+```{r}
+sum(is.na(dm))
+sum(is.na(d99))
+colSums(is.na(dm))
+identical(is.na(dm), is.na(d99))
+```
+
+`dm` et `d99` contiennent chacun `r sum(is.na(dm))` valeurs manquantes, et elles sont **aux mêmes positions** (`identical(is.na(dm), is.na(d99))` vaut `r identical(is.na(dm), is.na(d99))`).
+
+### b.
+
+```{r}
+pos_na <- which(is.na(dm), arr.ind = TRUE)   # matrice (ligne, colonne) des NA
+
+manquantes <- data.frame(
+  Modele          = ref$Modele[pos_na[, "row"]],
+  variable        = names(ref)[pos_na[, "col"]],
+  valeur_originale = ref[pos_na]                # indexation par matrice
+)
+manquantes[order(manquantes$Modele), ]
+```
+
+### c.
+
+```{r}
+d99_brut <- read.delim("data/auto2004_don_manquan_99999.txt")  # sans na.strings
+
+moy_brute <- mean(d99_brut$Puissance)
+moy_vraie <- mean(ref$Puissance)
+moy_brute
+moy_vraie
+moy_brute - moy_vraie
+```
+
+Sans `na.strings`, les `r sum(d99_brut$Puissance == 99999)` codes 99999 sont pris pour de vraies puissances : on obtient une puissance moyenne de `r format(round(moy_brute, 1), big.mark = " ", nsmall = 1)` ch au lieu de `r round(moy_vraie, 1)` ch, soit une erreur d'environ `r format(round(moy_brute - moy_vraie), big.mark = " ")` ch.
+
+
+
+## A3. Des relevés météo à la française
+
+Particularités repérées en ouvrant le fichier : 2 lignes de commentaire commençant par `#`, séparateur `;`, décimale `,`, encodage Latin-1 (ISO-8859-1), valeurs manquantes codées `n/a` (températures) et `-` (vent), dates au format `jj/mm/aaaa`.
+
+### a.
+
+```{r}
+meteo <- read_csv2(
+  "data/stations_janvier2026.csv",
+  comment = "#",
+  na      = c("n/a", "-", ""),
+  locale  = locale(encoding = "latin1", decimal_mark = ",", grouping_mark = " "),
+  col_types = cols(date = col_date(format = "%d/%m/%Y"))
+)
+meteo
+```
+
+### b.
+
+```{r}
+dim(meteo)
+sapply(meteo, class)
+colSums(is.na(meteo))
+range(meteo$date)
+unique(meteo$station)
+```
+
+Le tableau compte `r nrow(meteo)` lignes et `r ncol(meteo)` colonnes ; `date` est bien de classe `Date`, les mesures sont numériques. Il y a `r sum(is.na(meteo$temp_max))` NA dans `temp_max` et `r sum(is.na(meteo$vent_kmh))` dans `vent_kmh`. La période couverte va du `r format(min(meteo$date), "%d/%m/%Y")` au `r format(max(meteo$date), "%d/%m/%Y")`, pour les stations `r paste(unique(meteo$station), collapse = ", ")` (accents corrects).
+

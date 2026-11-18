@@ -364,6 +364,10 @@ Importer des fichiers texte récalcitrants</a>
 <ul>
 <li><a href="#a1.-cinq-versions-dun-m%C3%AAme-fichier" id="toc-a1.-cinq-versions-dun-même-fichier">A1. Cinq versions d’un même
 fichier</a></li>
+<li><a href="#a2.-comparer-les-valeurs-manquantes" id="toc-a2.-comparer-les-valeurs-manquantes">A2. Comparer les valeurs
+manquantes</a></li>
+<li><a href="#a3.-des-relev%C3%A9s-m%C3%A9t%C3%A9o-%C3%A0-la-fran%C3%A7aise" id="toc-a3.-des-relevés-météo-à-la-française">A3. Des relevés météo à la
+française</a></li>
 </ul></li>
 </ul>
 </div>
@@ -421,6 +425,122 @@ six autres variables en entier). <code>l3</code> et <code>sn</code> sont
 même strictement identiques à <code>ref</code>
 (<code>identical(l3, ref)</code> : TRUE, <code>identical(sn, ref)</code>
 : TRUE).</p>
+</div>
+<div id="a2.-comparer-les-valeurs-manquantes" class="section level2">
+<h2>A2. Comparer les valeurs manquantes</h2>
+<div id="a." class="section level3">
+<h3>a.</h3>
+<pre class="r"><code>sum(is.na(dm))</code></pre>
+<pre><code>## [1] 17</code></pre>
+<pre class="r"><code>sum(is.na(d99))</code></pre>
+<pre><code>## [1] 17</code></pre>
+<pre class="r"><code>colSums(is.na(dm))</code></pre>
+<pre><code>##    Modele Cylindree Puissance   Vitesse     Poids   Largeur  Longueur 
+##         0         1         4         4         4         1         3</code></pre>
+<pre class="r"><code>identical(is.na(dm), is.na(d99))</code></pre>
+<pre><code>## [1] TRUE</code></pre>
+<p><code>dm</code> et <code>d99</code> contiennent chacun 17 valeurs
+manquantes, et elles sont <strong>aux mêmes positions</strong>
+(<code>identical(is.na(dm), is.na(d99))</code> vaut TRUE).</p>
+</div>
+<div id="b." class="section level3">
+<h3>b.</h3>
+<pre class="r"><code>pos_na &lt;- which(is.na(dm), arr.ind = TRUE)   # matrice (ligne, colonne) des NA
+
+manquantes &lt;- data.frame(
+  Modele          = ref$Modele[pos_na[, &quot;row&quot;]],
+  variable        = names(ref)[pos_na[, &quot;col&quot;]],
+  valeur_originale = ref[pos_na]                # indexation par matrice
+)
+manquantes[order(manquantes$Modele), ]</code></pre>
+<pre><code>##                           Modele  variable valeur_originale
+## 8          Aston Martin Vanquish   Vitesse              306
+## 14         Aston Martin Vanquish   Largeur             1923
+## 12              Audi TT 1.8T 180     Poids             1280
+## 1         Bentley Continental GT Cylindree             5998
+## 16        Bentley Continental GT  Longueur             4804
+## 7                    BMW Z4 2.5i   Vitesse              235
+## 11                   BMW Z4 2.5i     Poids             1260
+## 2            Citroen C2 1.1 Base Puissance               61
+## 15           Citroen C2 1.1 Base  Longueur             3666
+## 17       Land Rover Defender Td5  Longueur             3883
+## 13      Land Rover Discovery Td5     Poids             2175
+## 3      Mercedes Classe C 270 CDI Puissance              170
+## 4      Mercedes Classe S 400 CDI Puissance              260
+## 10           Renault Clio 3.0 V6     Poids             1400
+## 9     Renault Scenic 1.9 dCi 120   Vitesse              188
+## 6             Smart Fortwo Coupe   Vitesse              135
+## 5  Volkswagen Touran 1.9 TDI 105 Puissance              105</code></pre>
+</div>
+<div id="c." class="section level3">
+<h3>c.</h3>
+<pre class="r"><code>d99_brut &lt;- read.delim(&quot;data/auto2004_don_manquan_99999.txt&quot;)  # sans na.strings
+
+moy_brute &lt;- mean(d99_brut$Puissance)
+moy_vraie &lt;- mean(ref$Puissance)
+moy_brute</code></pre>
+<pre><code>## [1] 16848.33</code></pre>
+<pre class="r"><code>moy_vraie</code></pre>
+<pre><code>## [1] 206.6667</code></pre>
+<pre class="r"><code>moy_brute - moy_vraie</code></pre>
+<pre><code>## [1] 16641.67</code></pre>
+<p>Sans <code>na.strings</code>, les 4 codes 99999 sont pris pour de
+vraies puissances : on obtient une puissance moyenne de 16 848.3 ch au
+lieu de 206.7 ch, soit une erreur d’environ 16 642 ch.</p>
+</div>
+</div>
+<div id="a3.-des-relevés-météo-à-la-française" class="section level2">
+<h2>A3. Des relevés météo à la française</h2>
+<p>Particularités repérées en ouvrant le fichier : 2 lignes de
+commentaire commençant par <code>#</code>, séparateur <code>;</code>,
+décimale <code>,</code>, encodage Latin-1 (ISO-8859-1), valeurs
+manquantes codées <code>n/a</code> (températures) et <code>-</code>
+(vent), dates au format <code>jj/mm/aaaa</code>.</p>
+<div id="a.-1" class="section level3">
+<h3>a.</h3>
+<pre class="r"><code>meteo &lt;- read_csv2(
+  &quot;data/stations_janvier2026.csv&quot;,
+  comment = &quot;#&quot;,
+  na      = c(&quot;n/a&quot;, &quot;-&quot;, &quot;&quot;),
+  locale  = locale(encoding = &quot;latin1&quot;, decimal_mark = &quot;,&quot;, grouping_mark = &quot; &quot;),
+  col_types = cols(date = col_date(format = &quot;%d/%m/%Y&quot;))
+)
+meteo</code></pre>
+<pre><code>## # A tibble: 124 × 6
+##    station date       temp_min temp_max pluie_mm vent_kmh
+##    &lt;chr&gt;   &lt;date&gt;        &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;
+##  1 Orléans 2026-01-01      2.3      4.8      0         21
+##  2 Orléans 2026-01-02     -1.7      5.2      0         12
+##  3 Orléans 2026-01-03      1.3      6.2      5.5       14
+##  4 Orléans 2026-01-04      0.8      6.5      0         34
+##  5 Orléans 2026-01-05     -0.7      6.4      1.2       12
+##  6 Orléans 2026-01-06     -5.3      2.8      0          9
+##  7 Orléans 2026-01-07     -0.8      5.1      0         17
+##  8 Orléans 2026-01-08     -1.6      9.7      3.8       20
+##  9 Orléans 2026-01-09      1.3      8.5     12.2       30
+## 10 Orléans 2026-01-10     -0.2      5.4      2.6       25
+## # ℹ 114 more rows</code></pre>
+</div>
+<div id="b.-1" class="section level3">
+<h3>b.</h3>
+<pre class="r"><code>dim(meteo)</code></pre>
+<pre><code>## [1] 124   6</code></pre>
+<pre class="r"><code>sapply(meteo, class)</code></pre>
+<pre><code>##     station        date    temp_min    temp_max    pluie_mm    vent_kmh 
+## &quot;character&quot;      &quot;Date&quot;   &quot;numeric&quot;   &quot;numeric&quot;   &quot;numeric&quot;   &quot;numeric&quot;</code></pre>
+<pre class="r"><code>colSums(is.na(meteo))</code></pre>
+<pre><code>##  station     date temp_min temp_max pluie_mm vent_kmh 
+##        0        0        0        6        0        5</code></pre>
+<pre class="r"><code>range(meteo$date)</code></pre>
+<pre><code>## [1] &quot;2026-01-01&quot; &quot;2026-01-31&quot;</code></pre>
+<pre class="r"><code>unique(meteo$station)</code></pre>
+<pre><code>## [1] &quot;Orléans&quot;       &quot;Besançon&quot;      &quot;Nîmes&quot;         &quot;Saint-Étienne&quot;</code></pre>
+<p>Le tableau compte 124 lignes et 6 colonnes ; <code>date</code> est
+bien de classe <code>Date</code>, les mesures sont numériques. Il y a 6
+NA dans <code>temp_max</code> et 5 dans <code>vent_kmh</code>. La
+période couverte va du 01/01/2026 au 31/01/2026, pour les stations
+Orléans, Besançon, Nîmes, Saint-Étienne (accents corrects).</p>
+</div>
 </div>
 </div>
 
