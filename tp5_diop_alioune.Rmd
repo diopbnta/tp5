@@ -331,3 +331,52 @@ class(read_csv("sorties/pays.csv")$continent)
 ```
 
 Avec le format `.rds`, `continent` est toujours un facteur (avec ses niveaux dans l'ordre). Un CSV ne stocke que du texte : relue, la colonne redevient une simple chaîne de caractères, et il faudrait recréer le facteur et l'ordre des niveaux.
+
+
+# Partie C : Ranger les données (tidy data)
+
+## C1. La pluie au format long
+
+### a.
+
+```{r}
+pluie_long <- pluie |>
+  pivot_longer(-c(station, annee), names_to = "mois", values_to = "mm")
+pluie_long
+```
+
+### b.
+
+```{r}
+mois_ordre <- c("janv", "févr", "mars", "avr", "mai", "juin",
+                "juil", "août", "sept", "oct", "nov", "déc")
+
+pluie_long <- pluie_long |>
+  mutate(mois = factor(mois, levels = mois_ordre))
+
+levels(pluie_long$mois)
+sum(is.na(pluie_long$mois))   # aucun mois perdu
+```
+
+### c.
+
+```{r}
+pluie_long |>
+  filter(annee == 2025) |>
+  group_by(station) |>
+  slice_max(mm, n = 1)
+```
+
+### d.
+
+```{r}
+pluie_comp <- pluie_long |>
+  pivot_wider(names_from = annee, values_from = mm) |>
+  mutate(difference = `2025` - `2024`)
+pluie_comp
+
+hausse_max <- pluie_comp |> slice_max(difference, n = 1)
+hausse_max
+```
+
+La plus forte hausse entre 2024 et 2025 a été observée à **`r hausse_max$station`** en **`r hausse_max$mois`** : +`r hausse_max$difference` mm (`r hausse_max[["2024"]]` mm en 2024 contre `r hausse_max[["2025"]]` mm en 2025).
