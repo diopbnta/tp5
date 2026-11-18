@@ -380,3 +380,31 @@ hausse_max
 ```
 
 La plus forte hausse entre 2024 et 2025 a été observée à **`r hausse_max$station`** en **`r hausse_max$mois`** : +`r hausse_max$difference` mm (`r hausse_max[["2024"]]` mm en 2024 contre `r hausse_max[["2025"]]` mm en 2025).
+
+
+
+## C2. Les températures au format long
+
+```{r}
+temp_long <- meteo |>
+  select(station, date, temp_min, temp_max) |>
+  pivot_longer(c(temp_min, temp_max),
+               names_to = "type", names_prefix = "temp_",
+               values_to = "temperature")
+temp_long
+
+amplitude <- temp_long |>
+  pivot_wider(names_from = type, values_from = temperature) |>
+  mutate(amplitude = max - min) |>
+  group_by(station) |>
+  summarise(amplitude_moy = mean(amplitude, na.rm = TRUE)) |>
+  arrange(desc(amplitude_moy))
+amplitude
+```
+
+```{r, include = FALSE}
+ampl_max <- amplitude |> slice_max(amplitude_moy, n = 1)
+```
+
+C'est à `r ampl_max$station` que l'amplitude thermique quotidienne moyenne est la plus forte (`r round(ampl_max$amplitude_moy, 1)` °C). Les jours où `temp_max` manque sont exclus du calcul.
+

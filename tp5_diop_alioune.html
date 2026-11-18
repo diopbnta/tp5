@@ -385,6 +385,8 @@ données (tidy data)</a>
 <ul>
 <li><a href="#c1.-la-pluie-au-format-long" id="toc-c1.-la-pluie-au-format-long">C1. La pluie au format
 long</a></li>
+<li><a href="#c2.-les-temp%C3%A9ratures-au-format-long" id="toc-c2.-les-températures-au-format-long">C2. Les températures au
+format long</a></li>
 </ul></li>
 </ul>
 </div>
@@ -949,6 +951,46 @@ hausse_max</code></pre>
 <strong>Besançon</strong> en <strong>janv</strong> : +154 mm (66 mm en
 2024 contre 220 mm en 2025).</p>
 </div>
+</div>
+<div id="c2.-les-températures-au-format-long" class="section level2">
+<h2>C2. Les températures au format long</h2>
+<pre class="r"><code>temp_long &lt;- meteo |&gt;
+  select(station, date, temp_min, temp_max) |&gt;
+  pivot_longer(c(temp_min, temp_max),
+               names_to = &quot;type&quot;, names_prefix = &quot;temp_&quot;,
+               values_to = &quot;temperature&quot;)
+temp_long</code></pre>
+<pre><code>## # A tibble: 248 × 4
+##    station date       type  temperature
+##    &lt;chr&gt;   &lt;date&gt;     &lt;chr&gt;       &lt;dbl&gt;
+##  1 Orléans 2026-01-01 min           2.3
+##  2 Orléans 2026-01-01 max           4.8
+##  3 Orléans 2026-01-02 min          -1.7
+##  4 Orléans 2026-01-02 max           5.2
+##  5 Orléans 2026-01-03 min           1.3
+##  6 Orléans 2026-01-03 max           6.2
+##  7 Orléans 2026-01-04 min           0.8
+##  8 Orléans 2026-01-04 max           6.5
+##  9 Orléans 2026-01-05 min          -0.7
+## 10 Orléans 2026-01-05 max           6.4
+## # ℹ 238 more rows</code></pre>
+<pre class="r"><code>amplitude &lt;- temp_long |&gt;
+  pivot_wider(names_from = type, values_from = temperature) |&gt;
+  mutate(amplitude = max - min) |&gt;
+  group_by(station) |&gt;
+  summarise(amplitude_moy = mean(amplitude, na.rm = TRUE)) |&gt;
+  arrange(desc(amplitude_moy))
+amplitude</code></pre>
+<pre><code>## # A tibble: 4 × 2
+##   station       amplitude_moy
+##   &lt;chr&gt;                 &lt;dbl&gt;
+## 1 Saint-Étienne          6.36
+## 2 Orléans                6.33
+## 3 Nîmes                  6.16
+## 4 Besançon               6.13</code></pre>
+<p>C’est à Saint-Étienne que l’amplitude thermique quotidienne moyenne
+est la plus forte (6.4 °C). Les jours où <code>temp_max</code> manque
+sont exclus du calcul.</p>
 </div>
 </div>
 
