@@ -357,8 +357,72 @@ données</h1>
 
 </div>
 
+<div id="TOC">
+<ul>
+<li><a href="#partie-a-importer-des-fichiers-texte-r%C3%A9calcitrants" id="toc-partie-a-importer-des-fichiers-texte-récalcitrants">Partie A :
+Importer des fichiers texte récalcitrants</a>
+<ul>
+<li><a href="#a1.-cinq-versions-dun-m%C3%AAme-fichier" id="toc-a1.-cinq-versions-dun-même-fichier">A1. Cinq versions d’un même
+fichier</a></li>
+</ul></li>
+</ul>
+</div>
 
+<div id="partie-a-importer-des-fichiers-texte-récalcitrants" class="section level1">
+<h1>Partie A : Importer des fichiers texte récalcitrants</h1>
+<div id="a1.-cinq-versions-dun-même-fichier" class="section level2">
+<h2>A1. Cinq versions d’un même fichier</h2>
+<p>Les cinq fichiers sont séparés par des tabulations : on utilise
+<code>read.delim()</code> (R de base).</p>
+<pre class="r"><code># a. Référence : en-tête sur la 1re ligne
+ref &lt;- read.delim(&quot;data/auto2004_original.txt&quot;)
 
+# b. 3 lignes de description avant l&#39;en-tête -&gt; on les saute
+l3 &lt;- read.delim(&quot;data/auto2004_original_ligne3.txt&quot;, skip = 3)
+
+# c. Pas de ligne d&#39;en-tête -&gt; on reprend les noms de la référence
+sn &lt;- read.delim(&quot;data/auto2004_sans_nom.txt&quot;, header = FALSE,
+                 col.names = names(ref))
+
+# d. Cases vides : read.delim les lit directement comme NA dans les colonnes numériques
+dm &lt;- read.delim(&quot;data/auto2004_don_manquante.txt&quot;)
+
+# e. Valeurs manquantes codées 99999 -&gt; na.strings
+d99 &lt;- read.delim(&quot;data/auto2004_don_manquan_99999.txt&quot;, na.strings = &quot;99999&quot;)
+
+str(ref)</code></pre>
+<pre><code>## &#39;data.frame&#39;:    24 obs. of  7 variables:
+##  $ Modele   : chr  &quot;Citroen C2 1.1 Base&quot; &quot;Smart Fortwo Coupe&quot; &quot;Mini 1.6 170&quot; &quot;Nissan Micra 1.2 65&quot; ...
+##  $ Cylindree: int  1124 698 1598 1240 2946 1896 1398 2946 2685 2993 ...
+##  $ Puissance: int  61 52 170 65 255 105 70 211 170 218 ...
+##  $ Vitesse  : int  158 135 218 154 245 187 160 229 230 245 ...
+##  $ Poids    : int  932 730 1215 965 1400 1295 1179 1640 1600 1595 ...
+##  $ Largeur  : int  1659 1515 1690 1660 1810 1765 1746 1811 1728 1846 ...
+##  $ Longueur : int  3666 2500 3625 3715 3812 4203 4202 4676 4528 4841 ...</code></pre>
+<p>Pour vérifier, une petite fonction compare noms, dimensions et types
+à la référence ; on l’appelle <strong>une fois par fichier</strong>
+:</p>
+<pre class="r"><code>meme_structure &lt;- function(x) {
+  identical(list(names(x), dim(x), sapply(x, class)),
+            list(names(ref), dim(ref), sapply(ref, class)))
+}
+
+meme_structure(l3)</code></pre>
+<pre><code>## [1] TRUE</code></pre>
+<pre class="r"><code>meme_structure(sn)</code></pre>
+<pre><code>## [1] TRUE</code></pre>
+<pre class="r"><code>meme_structure(dm)</code></pre>
+<pre><code>## [1] TRUE</code></pre>
+<pre class="r"><code>meme_structure(d99)</code></pre>
+<pre><code>## [1] TRUE</code></pre>
+<p>Les quatre imports ont la même structure que <code>ref</code> (24
+lignes, 7 colonnes, mêmes noms, <code>Modele</code> en caractère et les
+six autres variables en entier). <code>l3</code> et <code>sn</code> sont
+même strictement identiques à <code>ref</code>
+(<code>identical(l3, ref)</code> : TRUE, <code>identical(sn, ref)</code>
+: TRUE).</p>
+</div>
+</div>
 
 
 

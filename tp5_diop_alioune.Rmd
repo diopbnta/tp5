@@ -16,4 +16,46 @@ library(haven)    # import du fichier SAS (B2)
 library(writexl)  # export Excel (B3)
 ```
 
+# Partie A : Importer des fichiers texte récalcitrants
+
+## A1. Cinq versions d'un même fichier
+
+Les cinq fichiers sont séparés par des tabulations : on utilise `read.delim()` (R de base).
+
+```{r}
+# a. Référence : en-tête sur la 1re ligne
+ref <- read.delim("data/auto2004_original.txt")
+
+# b. 3 lignes de description avant l'en-tête -> on les saute
+l3 <- read.delim("data/auto2004_original_ligne3.txt", skip = 3)
+
+# c. Pas de ligne d'en-tête -> on reprend les noms de la référence
+sn <- read.delim("data/auto2004_sans_nom.txt", header = FALSE,
+                 col.names = names(ref))
+
+# d. Cases vides : read.delim les lit directement comme NA dans les colonnes numériques
+dm <- read.delim("data/auto2004_don_manquante.txt")
+
+# e. Valeurs manquantes codées 99999 -> na.strings
+d99 <- read.delim("data/auto2004_don_manquan_99999.txt", na.strings = "99999")
+
+str(ref)
+```
+
+Pour vérifier, une petite fonction compare noms, dimensions et types à la référence ; on l'appelle **une fois par fichier** :
+
+```{r}
+meme_structure <- function(x) {
+  identical(list(names(x), dim(x), sapply(x, class)),
+            list(names(ref), dim(ref), sapply(ref, class)))
+}
+
+meme_structure(l3)
+meme_structure(sn)
+meme_structure(dm)
+meme_structure(d99)
+```
+
+Les quatre imports ont la même structure que `ref` (24 lignes, 7 colonnes, mêmes noms, `Modele` en caractère et les six autres variables en entier). `l3` et `sn` sont même strictement identiques à `ref` (`identical(l3, ref)` : `r identical(l3, ref)`, `identical(sn, ref)` : `r identical(sn, ref)`).
+
 
