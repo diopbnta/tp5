@@ -290,3 +290,44 @@ pays |>
 ```
 
 Les espérances de vie les plus basses sont celles de la Sierra Leone (35 ans), de la Gambie (36 ans), de l'Afghanistan (39 ans) et du Timor oriental (40 ans) ; la 5e place est partagée par trois pays ex aequo à 41 ans (Guinée, Éthiopie, Somalie), d'où 7 lignes. Ce sont presque tous des pays africains.
+
+
+
+## B3. Exporter
+
+### a.
+
+```{r}
+dir.create("sorties", showWarnings = FALSE)
+write_csv2(bilan_meteo, "sorties/bilan_meteo.csv")
+
+bilan_relu <- read_csv2("sorties/bilan_meteo.csv")
+bilan_relu
+all.equal(as.data.frame(bilan_relu), as.data.frame(bilan_meteo),
+          check.attributes = FALSE)
+```
+
+Oui : on retrouve le même tableau (mêmes valeurs ; seuls les compteurs de jours, entiers au départ, sont relus en `double`).
+
+### b.
+
+```{r}
+write_xlsx(list(pluie = pluie, bilan_meteo = bilan_meteo),
+           "sorties/meteo.xlsx")
+excel_sheets("sorties/meteo.xlsx")
+```
+
+### c.
+
+```{r}
+saveRDS(pays, "sorties/pays.rds")
+pays_relu <- readRDS("sorties/pays.rds")
+is.factor(pays_relu$continent)
+levels(pays_relu$continent)
+
+# Comparaison avec un CSV
+write_csv(pays, "sorties/pays.csv")
+class(read_csv("sorties/pays.csv")$continent)
+```
+
+Avec le format `.rds`, `continent` est toujours un facteur (avec ses niveaux dans l'ordre). Un CSV ne stocke que du texte : relue, la colonne redevient une simple chaîne de caractères, et il faudrait recréer le facteur et l'ordre des niveaux.

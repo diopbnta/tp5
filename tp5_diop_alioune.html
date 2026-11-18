@@ -378,6 +378,7 @@ export</a>
 plusieurs feuilles</a></li>
 <li><a href="#b2.-des-donn%C3%A9es-sas" id="toc-b2.-des-données-sas">B2.
 Des données SAS</a></li>
+<li><a href="#b3.-exporter" id="toc-b3.-exporter">B3. Exporter</a></li>
 </ul></li>
 </ul>
 </div>
@@ -808,6 +809,54 @@ la plus élevée ; l’Europe est à l’opposé, avec le PNB médian le plus
 oriental (40 ans) ; la 5e place est partagée par trois pays ex aequo à
 41 ans (Guinée, Éthiopie, Somalie), d’où 7 lignes. Ce sont presque tous
 des pays africains.</p>
+</div>
+</div>
+<div id="b3.-exporter" class="section level2">
+<h2>B3. Exporter</h2>
+<div id="a.-5" class="section level3">
+<h3>a.</h3>
+<pre class="r"><code>dir.create(&quot;sorties&quot;, showWarnings = FALSE)
+write_csv2(bilan_meteo, &quot;sorties/bilan_meteo.csv&quot;)
+
+bilan_relu &lt;- read_csv2(&quot;sorties/bilan_meteo.csv&quot;)
+bilan_relu</code></pre>
+<pre><code>## # A tibble: 4 × 6
+##   station       tmin_moy tmax_moy cumul_pluie jours_gel jours_pluie
+##   &lt;chr&gt;            &lt;dbl&gt;    &lt;dbl&gt;       &lt;dbl&gt;     &lt;dbl&gt;       &lt;dbl&gt;
+## 1 Besançon        -2.32      3.91        69.6        28          19
+## 2 Nîmes            5.01     11.0         99           0          15
+## 3 Orléans          0.774     7.07        50.8        11          11
+## 4 Saint-Étienne   -1.07      5.26        76.1        20          13</code></pre>
+<pre class="r"><code>all.equal(as.data.frame(bilan_relu), as.data.frame(bilan_meteo),
+          check.attributes = FALSE)</code></pre>
+<pre><code>## [1] TRUE</code></pre>
+<p>Oui : on retrouve le même tableau (mêmes valeurs ; seuls les
+compteurs de jours, entiers au départ, sont relus en
+<code>double</code>).</p>
+</div>
+<div id="b.-5" class="section level3">
+<h3>b.</h3>
+<pre class="r"><code>write_xlsx(list(pluie = pluie, bilan_meteo = bilan_meteo),
+           &quot;sorties/meteo.xlsx&quot;)
+excel_sheets(&quot;sorties/meteo.xlsx&quot;)</code></pre>
+<pre><code>## [1] &quot;pluie&quot;       &quot;bilan_meteo&quot;</code></pre>
+</div>
+<div id="c.-4" class="section level3">
+<h3>c.</h3>
+<pre class="r"><code>saveRDS(pays, &quot;sorties/pays.rds&quot;)
+pays_relu &lt;- readRDS(&quot;sorties/pays.rds&quot;)
+is.factor(pays_relu$continent)</code></pre>
+<pre><code>## [1] TRUE</code></pre>
+<pre class="r"><code>levels(pays_relu$continent)</code></pre>
+<pre><code>## [1] &quot;Afrique&quot;   &quot;Asie&quot;      &quot;Amériques&quot; &quot;Europe&quot;    &quot;Océanie&quot;</code></pre>
+<pre class="r"><code># Comparaison avec un CSV
+write_csv(pays, &quot;sorties/pays.csv&quot;)
+class(read_csv(&quot;sorties/pays.csv&quot;)$continent)</code></pre>
+<pre><code>## [1] &quot;character&quot;</code></pre>
+<p>Avec le format <code>.rds</code>, <code>continent</code> est toujours
+un facteur (avec ses niveaux dans l’ordre). Un CSV ne stocke que du
+texte : relue, la colonne redevient une simple chaîne de caractères, et
+il faudrait recréer le facteur et l’ordre des niveaux.</p>
 </div>
 </div>
 </div>
