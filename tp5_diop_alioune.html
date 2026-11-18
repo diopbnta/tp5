@@ -395,6 +395,7 @@ format long</a></li>
 <li><a href="#d1.-importer-et-diagnostiquer" id="toc-d1.-importer-et-diagnostiquer">D1. Importer et
 diagnostiquer</a></li>
 <li><a href="#d2.-corriger" id="toc-d2.-corriger">D2. Corriger</a></li>
+<li><a href="#d3.-analyser" id="toc-d3.-analyser">D3. Analyser</a></li>
 </ul></li>
 </ul>
 </div>
@@ -1382,6 +1383,84 @@ du coup, avant la naissance). Restent, car non demandées dans la liste :
 le salaire manquant, l’identifiant 120108 partagé par deux personnes et
 les deux embauches à 15 ans (voir D3d) ; les dates d’embauche invalidées
 sont désormais des NA.</p>
+</div>
+<div id="d3.-analyser" class="section level2">
+<h2>D3. Analyser</h2>
+<div id="a.-8" class="section level3">
+<h3>a.</h3>
+<pre class="r"><code>emp_propre |&gt;
+  group_by(Country, Gender) |&gt;
+  summarise(salaire_median = median(Salary, na.rm = TRUE),
+            n = n(), .groups = &quot;drop&quot;) |&gt;
+  pivot_wider(id_cols = Country, names_from = Gender, values_from = salaire_median)</code></pre>
+<pre><code>## # A tibble: 2 × 4
+##   Country     F     M  `NA`
+##   &lt;chr&gt;   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+## 1 AU      27110 28090 31285
+## 2 US      36315 35870 33950</code></pre>
+</div>
+<div id="b.-8" class="section level3">
+<h3>b.</h3>
+<pre class="r"><code>emp_propre |&gt;
+  group_by(Job_Title) |&gt;
+  summarise(n = n(), salaire_moyen = mean(Salary, na.rm = TRUE)) |&gt;
+  slice_max(n, n = 5)   # les ex aequo sont conservés</code></pre>
+<pre><code>## # A tibble: 8 × 3
+##   Job_Title                  n salaire_moyen
+##   &lt;chr&gt;                  &lt;int&gt;         &lt;dbl&gt;
+## 1 Trainee                   18        25477.
+## 2 Warehouse Assistant I     10        26262.
+## 3 Purchasing Agent I         6        30977.
+## 4 Accountant I               5        31563 
+## 5 Accountant II              5        37284 
+## 6 Marketing Assistant II     5        29544 
+## 7 Purchasing Agent II        5        34488 
+## 8 Shipping Manager           5        57477</code></pre>
+<p>Les postes les plus fréquents sont Trainee (18 employés, salaire
+moyen le plus bas), Warehouse Assistant I (10) et Purchasing Agent I
+(6). La 4e place est partagée par cinq intitulés à 5 employés chacun
+(Accountant I et II, Marketing Assistant II, Purchasing Agent II,
+Shipping Manager) : on ne peut pas départager un « top 5 » strict, le
+tableau les montre tous.</p>
+</div>
+<div id="c.-7" class="section level3">
+<h3>c.</h3>
+<pre class="r"><code>emp_propre |&gt;
+  filter(!is.na(Hire_Date)) |&gt;
+  mutate(decennie = floor(year(Hire_Date) / 10) * 10) |&gt;
+  group_by(decennie) |&gt;
+  summarise(n = n(), age_moyen = mean(age_embauche))</code></pre>
+<pre><code>## # A tibble: 4 × 3
+##   decennie     n age_moyen
+##      &lt;dbl&gt; &lt;int&gt;     &lt;dbl&gt;
+## 1     1970    51      25.8
+## 2     1980    43      23.2
+## 3     1990    60      23.8
+## 4     2000    78      23.4</code></pre>
+<p>L’âge moyen à l’embauche est assez stable, autour de 23-26 ans : il
+est un peu plus élevé pour les embauches des années 1970 (environ 26
+ans) et proche de 23 ans ensuite. Les employés sans date d’embauche
+valide (NA) sont exclus.</p>
+</div>
+<div id="d.-3" class="section level3">
+<h3>d.</h3>
+<pre class="r"><code>min(emp_propre$age_embauche, na.rm = TRUE)</code></pre>
+<pre><code>## [1] 15</code></pre>
+<pre class="r"><code>emp_propre |&gt;
+  filter(age_embauche &lt; 16) |&gt;
+  select(Employee_ID, First, Last, Job_Title, Birth_Date, Hire_Date, age_embauche)</code></pre>
+<pre><code>## # A tibble: 2 × 7
+##   Employee_ID First    Last   Job_Title       Birth_Date Hire_Date  age_embauche
+##         &lt;dbl&gt; &lt;chr&gt;    &lt;chr&gt;  &lt;chr&gt;           &lt;date&gt;     &lt;date&gt;            &lt;dbl&gt;
+## 1      120277 Wesley   Shirts Concession Con… 1988-08-16 2004-05-01           15
+## 2      120729 Kimberly Howell Purchasing Age… 1988-04-03 2003-04-25           15</code></pre>
+<p>L’âge minimal à l’embauche est de 15 ans, et 2 employés ont été
+embauchés avant 16 ans. Ce n’est pas plausible : on n’embauche pas un
+adolescent de 15 ans comme consultant ou acheteur (Purchasing Agent), et
+l’âge légal du travail à temps plein est supérieur. Il s’agit très
+probablement d’erreurs de saisie de la date de naissance ou de la date
+d’embauche.</p>
+</div>
 </div>
 </div>
 

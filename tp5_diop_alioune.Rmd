@@ -579,3 +579,50 @@ summary(emp_propre[, c("age_embauche", "anciennete")])
 ```
 
 Les anomalies visées par les corrections ont disparu : plus de pays en minuscules, plus de code de sexe autre que F/M, plus d'identifiant manquant, plus de salaire < 10 000, plus d'embauche avant 1974 (ni, du coup, avant la naissance). Restent, car non demandées dans la liste : le salaire manquant, l'identifiant 120108 partagé par deux personnes et les deux embauches à 15 ans (voir D3d) ; les dates d'embauche invalidées sont désormais des NA.
+
+
+## D3. Analyser
+
+### a.
+
+```{r}
+emp_propre |>
+  group_by(Country, Gender) |>
+  summarise(salaire_median = median(Salary, na.rm = TRUE),
+            n = n(), .groups = "drop") |>
+  pivot_wider(id_cols = Country, names_from = Gender, values_from = salaire_median)
+```
+
+### b.
+
+```{r}
+emp_propre |>
+  group_by(Job_Title) |>
+  summarise(n = n(), salaire_moyen = mean(Salary, na.rm = TRUE)) |>
+  slice_max(n, n = 5)   # les ex aequo sont conservés
+```
+
+Les postes les plus fréquents sont Trainee (18 employés, salaire moyen le plus bas), Warehouse Assistant I (10) et Purchasing Agent I (6). La 4e place est partagée par cinq intitulés à 5 employés chacun (Accountant I et II, Marketing Assistant II, Purchasing Agent II, Shipping Manager) : on ne peut pas départager un « top 5 » strict, le tableau les montre tous.
+
+### c.
+
+```{r}
+emp_propre |>
+  filter(!is.na(Hire_Date)) |>
+  mutate(decennie = floor(year(Hire_Date) / 10) * 10) |>
+  group_by(decennie) |>
+  summarise(n = n(), age_moyen = mean(age_embauche))
+```
+
+L'âge moyen à l'embauche est assez stable, autour de 23-26 ans : il est un peu plus élevé pour les embauches des années 1970 (environ 26 ans) et proche de 23 ans ensuite. Les employés sans date d'embauche valide (NA) sont exclus.
+
+### d.
+
+```{r}
+min(emp_propre$age_embauche, na.rm = TRUE)
+emp_propre |>
+  filter(age_embauche < 16) |>
+  select(Employee_ID, First, Last, Job_Title, Birth_Date, Hire_Date, age_embauche)
+```
+
+L'âge minimal à l'embauche est de `r min(emp_propre$age_embauche, na.rm = TRUE)` ans, et `r sum(emp_propre$age_embauche < 16, na.rm = TRUE)` employés ont été embauchés avant 16 ans. Ce n'est pas plausible : on n'embauche pas un adolescent de 15 ans comme consultant ou acheteur (Purchasing Agent), et l'âge légal du travail à temps plein est supérieur. Il s'agit très probablement d'erreurs de saisie de la date de naissance ou de la date d'embauche.
