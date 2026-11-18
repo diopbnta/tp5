@@ -203,3 +203,41 @@ p3_ok <- read_csv2("data/prix_fr.csv", na = "n/a")
 str(p1_ok)
 p3_ok
 ```
+
+
+# Partie B : Excel, SAS et export
+
+## B1. Un classeur à plusieurs feuilles
+
+### a.
+
+```{r}
+feuilles <- excel_sheets("data/pluie_mensuelle.xlsx")
+feuilles
+read_excel("data/pluie_mensuelle.xlsx", sheet = 1, col_names = FALSE) |> head(6)
+```
+
+Le classeur a deux feuilles, `2024` et `2025`. Chaque feuille commence par un titre (A1), une ligne « Source » (A2) et une ligne vide (3) : le tableau commence en **ligne 4** (cellule A4, ligne d'en-tête `station`, `janv`… `déc`). Il faut donc sauter 3 lignes (`skip = 3`).
+
+### b.
+
+```{r}
+pluie <- map(feuilles, \(f)
+  read_excel("data/pluie_mensuelle.xlsx", sheet = f, skip = 3) |>
+    mutate(annee = as.numeric(f))
+) |>
+  list_rbind() |>
+  relocate(station, annee)
+pluie
+```
+
+### c.
+
+```{r}
+cumul_annuel <- pluie |>
+  mutate(cumul = rowSums(across(-c(station, annee)))) |>
+  select(station, annee, cumul)
+
+cumul_annuel |> pivot_wider(names_from = annee, values_from = cumul)
+```
+
