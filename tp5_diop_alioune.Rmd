@@ -241,3 +241,52 @@ cumul_annuel <- pluie |>
 cumul_annuel |> pivot_wider(names_from = annee, values_from = cumul)
 ```
 
+
+## B2. Des données SAS
+
+### a.
+
+```{r}
+pays <- read_sas("data/paysniv3.sas7bdat")
+dim(pays)
+na_par_var <- colSums(is.na(pays))
+na_par_var[na_par_var > 0]
+```
+
+Le fichier décrit `r nrow(pays)` pays avec `r ncol(pays)` variables. Les variables avec des valeurs manquantes sont : `r paste(names(na_par_var[na_par_var > 0]), collapse = ", ")`.
+
+### b.
+
+```{r}
+pays <- pays |>
+  mutate(continent = factor(CONTI, levels = 1:5,
+                            labels = c("Afrique", "Asie", "Amériques",
+                                       "Europe", "Océanie")))
+count(pays, continent)
+```
+
+### c.
+
+```{r}
+pays |>
+  group_by(continent) |>
+  summarise(
+    n_pays      = n(),
+    esper_moy   = mean(ESPER, na.rm = TRUE),
+    ferti_moy   = mean(FERTI, na.rm = TRUE),
+    pnb_median  = median(PNB, na.rm = TRUE)
+  ) |>
+  arrange(esper_moy)
+```
+
+L'Afrique a l'espérance de vie moyenne la plus faible et la fécondité la plus élevée ; l'Europe est à l'opposé, avec le PNB médian le plus élevé.
+
+### d.
+
+```{r}
+pays |>
+  slice_min(ESPER, n = 5) |>   # les ex aequo sont conservés
+  select(NOM, continent, ESPER)
+```
+
+Les espérances de vie les plus basses sont celles de la Sierra Leone (35 ans), de la Gambie (36 ans), de l'Afghanistan (39 ans) et du Timor oriental (40 ans) ; la 5e place est partagée par trois pays ex aequo à 41 ans (Guinée, Éthiopie, Somalie), d'où 7 lignes. Ce sont presque tous des pays africains.

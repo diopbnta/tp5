@@ -376,6 +376,8 @@ export</a>
 <ul>
 <li><a href="#b1.-un-classeur-%C3%A0-plusieurs-feuilles" id="toc-b1.-un-classeur-à-plusieurs-feuilles">B1. Un classeur à
 plusieurs feuilles</a></li>
+<li><a href="#b2.-des-donn%C3%A9es-sas" id="toc-b2.-des-données-sas">B2.
+Des données SAS</a></li>
 </ul></li>
 </ul>
 </div>
@@ -730,6 +732,82 @@ cumul_annuel |&gt; pivot_wider(names_from = annee, values_from = cumul)</code></
 ## 2 Besançon         626    753
 ## 3 Nîmes            674    419
 ## 4 Saint-Étienne    651    677</code></pre>
+</div>
+</div>
+<div id="b2.-des-données-sas" class="section level2">
+<h2>B2. Des données SAS</h2>
+<div id="a.-4" class="section level3">
+<h3>a.</h3>
+<pre class="r"><code>pays &lt;- read_sas(&quot;data/paysniv3.sas7bdat&quot;)
+dim(pays)</code></pre>
+<pre><code>## [1] 173  25</code></pre>
+<pre class="r"><code>na_par_var &lt;- colSums(is.na(pays))
+na_par_var[na_par_var &gt; 0]</code></pre>
+<pre><code>##  DOUB  URBA   EAU ENERG ENERT   PNB  SURF CULTU PATUR FORET 
+##     4     3    90    36    35    10     1     2     2     2</code></pre>
+<p>Le fichier décrit 173 pays avec 25 variables. Les variables avec des
+valeurs manquantes sont : DOUB, URBA, EAU, ENERG, ENERT, PNB, SURF,
+CULTU, PATUR, FORET.</p>
+</div>
+<div id="b.-4" class="section level3">
+<h3>b.</h3>
+<pre class="r"><code>pays &lt;- pays |&gt;
+  mutate(continent = factor(CONTI, levels = 1:5,
+                            labels = c(&quot;Afrique&quot;, &quot;Asie&quot;, &quot;Amériques&quot;,
+                                       &quot;Europe&quot;, &quot;Océanie&quot;)))
+count(pays, continent)</code></pre>
+<pre><code>## # A tibble: 5 × 2
+##   continent     n
+##   &lt;fct&gt;     &lt;int&gt;
+## 1 Afrique      53
+## 2 Asie         44
+## 3 Amériques    39
+## 4 Europe       28
+## 5 Océanie       9</code></pre>
+</div>
+<div id="c.-3" class="section level3">
+<h3>c.</h3>
+<pre class="r"><code>pays |&gt;
+  group_by(continent) |&gt;
+  summarise(
+    n_pays      = n(),
+    esper_moy   = mean(ESPER, na.rm = TRUE),
+    ferti_moy   = mean(FERTI, na.rm = TRUE),
+    pnb_median  = median(PNB, na.rm = TRUE)
+  ) |&gt;
+  arrange(esper_moy)</code></pre>
+<pre><code>## # A tibble: 5 × 5
+##   continent n_pays esper_moy ferti_moy pnb_median
+##   &lt;fct&gt;      &lt;int&gt;     &lt;dbl&gt;     &lt;dbl&gt;      &lt;dbl&gt;
+## 1 Afrique       53      50.8      6.11        370
+## 2 Asie          44      60.8      4.88       1150
+## 3 Océanie        9      67.9      4.06       1700
+## 4 Amériques     39      68.4      3.43       1320
+## 5 Europe        28      73.5      1.87       8335</code></pre>
+<p>L’Afrique a l’espérance de vie moyenne la plus faible et la fécondité
+la plus élevée ; l’Europe est à l’opposé, avec le PNB médian le plus
+élevé.</p>
+</div>
+<div id="d." class="section level3">
+<h3>d.</h3>
+<pre class="r"><code>pays |&gt;
+  slice_min(ESPER, n = 5) |&gt;   # les ex aequo sont conservés
+  select(NOM, continent, ESPER)</code></pre>
+<pre><code>## # A tibble: 7 × 3
+##   NOM          continent ESPER
+##   &lt;chr&gt;        &lt;fct&gt;     &lt;dbl&gt;
+## 1 SIERRA LEONE Afrique      35
+## 2 GAMBIA       Afrique      36
+## 3 AFGANISTHAN  Asie         39
+## 4 EAST TIMOR   Asie         40
+## 5 GUINEA       Afrique      41
+## 6 ETHIOPIA     Afrique      41
+## 7 SOMALIA      Afrique      41</code></pre>
+<p>Les espérances de vie les plus basses sont celles de la Sierra Leone
+(35 ans), de la Gambie (36 ans), de l’Afghanistan (39 ans) et du Timor
+oriental (40 ans) ; la 5e place est partagée par trois pays ex aequo à
+41 ans (Guinée, Éthiopie, Somalie), d’où 7 lignes. Ce sont presque tous
+des pays africains.</p>
 </div>
 </div>
 </div>
