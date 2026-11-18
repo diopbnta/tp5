@@ -130,3 +130,47 @@ unique(meteo$station)
 
 Le tableau compte `r nrow(meteo)` lignes et `r ncol(meteo)` colonnes ; `date` est bien de classe `Date`, les mesures sont numériques. Il y a `r sum(is.na(meteo$temp_max))` NA dans `temp_max` et `r sum(is.na(meteo$vent_kmh))` dans `vent_kmh`. La période couverte va du `r format(min(meteo$date), "%d/%m/%Y")` au `r format(max(meteo$date), "%d/%m/%Y")`, pour les stations `r paste(unique(meteo$station), collapse = ", ")` (accents corrects).
 
+
+## A4. Exploiter les relevés
+
+### a.
+
+```{r}
+bilan_meteo <- meteo |>
+  group_by(station) |>
+  summarise(
+    tmin_moy     = mean(temp_min, na.rm = TRUE),
+    tmax_moy     = mean(temp_max, na.rm = TRUE),
+    cumul_pluie  = sum(pluie_mm, na.rm = TRUE),
+    jours_gel    = sum(temp_min < 0, na.rm = TRUE),
+    jours_pluie  = sum(pluie_mm > 0, na.rm = TRUE)
+  )
+bilan_meteo
+```
+
+### b.
+
+```{r}
+bilan_meteo |> slice_max(jours_gel, n = 1)
+bilan_meteo |> slice_max(cumul_pluie, n = 1)
+```
+
+```{r, include = FALSE}
+st_gel   <- bilan_meteo |> slice_max(jours_gel, n = 1)
+st_pluie <- bilan_meteo |> slice_max(cumul_pluie, n = 1)
+```
+
+La station qui a connu le plus de jours de gel est **`r st_gel$station`** (`r st_gel$jours_gel` jours) ; la plus arrosée est **`r st_pluie$station`** (`r st_pluie$cumul_pluie` mm sur le mois).
+
+### c.
+
+```{r}
+jour_froid <- meteo |>
+  group_by(station) |>
+  slice_min(temp_min, n = 1) |>
+  select(station, date, temp_min)
+jour_froid
+```
+
+Le tableau ci-dessus donne, pour chaque station, le jour où la température minimale a été la plus basse.
+

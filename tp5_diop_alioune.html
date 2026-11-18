@@ -368,6 +368,7 @@ fichier</a></li>
 manquantes</a></li>
 <li><a href="#a3.-des-relev%C3%A9s-m%C3%A9t%C3%A9o-%C3%A0-la-fran%C3%A7aise" id="toc-a3.-des-relevés-météo-à-la-française">A3. Des relevés météo à la
 française</a></li>
+<li><a href="#a4.-exploiter-les-relev%C3%A9s" id="toc-a4.-exploiter-les-relevés">A4. Exploiter les relevés</a></li>
 </ul></li>
 </ul>
 </div>
@@ -540,6 +541,63 @@ bien de classe <code>Date</code>, les mesures sont numériques. Il y a 6
 NA dans <code>temp_max</code> et 5 dans <code>vent_kmh</code>. La
 période couverte va du 01/01/2026 au 31/01/2026, pour les stations
 Orléans, Besançon, Nîmes, Saint-Étienne (accents corrects).</p>
+</div>
+</div>
+<div id="a4.-exploiter-les-relevés" class="section level2">
+<h2>A4. Exploiter les relevés</h2>
+<div id="a.-2" class="section level3">
+<h3>a.</h3>
+<pre class="r"><code>bilan_meteo &lt;- meteo |&gt;
+  group_by(station) |&gt;
+  summarise(
+    tmin_moy     = mean(temp_min, na.rm = TRUE),
+    tmax_moy     = mean(temp_max, na.rm = TRUE),
+    cumul_pluie  = sum(pluie_mm, na.rm = TRUE),
+    jours_gel    = sum(temp_min &lt; 0, na.rm = TRUE),
+    jours_pluie  = sum(pluie_mm &gt; 0, na.rm = TRUE)
+  )
+bilan_meteo</code></pre>
+<pre><code>## # A tibble: 4 × 6
+##   station       tmin_moy tmax_moy cumul_pluie jours_gel jours_pluie
+##   &lt;chr&gt;            &lt;dbl&gt;    &lt;dbl&gt;       &lt;dbl&gt;     &lt;int&gt;       &lt;int&gt;
+## 1 Besançon        -2.32      3.91        69.6        28          19
+## 2 Nîmes            5.01     11.0         99           0          15
+## 3 Orléans          0.774     7.07        50.8        11          11
+## 4 Saint-Étienne   -1.07      5.26        76.1        20          13</code></pre>
+</div>
+<div id="b.-2" class="section level3">
+<h3>b.</h3>
+<pre class="r"><code>bilan_meteo |&gt; slice_max(jours_gel, n = 1)</code></pre>
+<pre><code>## # A tibble: 1 × 6
+##   station  tmin_moy tmax_moy cumul_pluie jours_gel jours_pluie
+##   &lt;chr&gt;       &lt;dbl&gt;    &lt;dbl&gt;       &lt;dbl&gt;     &lt;int&gt;       &lt;int&gt;
+## 1 Besançon    -2.32     3.91        69.6        28          19</code></pre>
+<pre class="r"><code>bilan_meteo |&gt; slice_max(cumul_pluie, n = 1)</code></pre>
+<pre><code>## # A tibble: 1 × 6
+##   station tmin_moy tmax_moy cumul_pluie jours_gel jours_pluie
+##   &lt;chr&gt;      &lt;dbl&gt;    &lt;dbl&gt;       &lt;dbl&gt;     &lt;int&gt;       &lt;int&gt;
+## 1 Nîmes       5.01     11.0          99         0          15</code></pre>
+<p>La station qui a connu le plus de jours de gel est
+<strong>Besançon</strong> (28 jours) ; la plus arrosée est
+<strong>Nîmes</strong> (99 mm sur le mois).</p>
+</div>
+<div id="c.-1" class="section level3">
+<h3>c.</h3>
+<pre class="r"><code>jour_froid &lt;- meteo |&gt;
+  group_by(station) |&gt;
+  slice_min(temp_min, n = 1) |&gt;
+  select(station, date, temp_min)
+jour_froid</code></pre>
+<pre><code>## # A tibble: 4 × 3
+## # Groups:   station [4]
+##   station       date       temp_min
+##   &lt;chr&gt;         &lt;date&gt;        &lt;dbl&gt;
+## 1 Besançon      2026-01-26     -5.1
+## 2 Nîmes         2026-01-29      0.1
+## 3 Orléans       2026-01-15     -5.4
+## 4 Saint-Étienne 2026-01-02     -5.6</code></pre>
+<p>Le tableau ci-dessus donne, pour chaque station, le jour où la
+température minimale a été la plus basse.</p>
 </div>
 </div>
 </div>
