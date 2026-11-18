@@ -1,0 +1,19 @@
+---
+title: "TP 5 : Importer, ranger et nettoyer des données" 
+author: "Alioune DIOP"
+date: "2026-11-18"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+library(tidyverse)
+library(readxl)
+library(haven)    # import du fichier SAS (B2)
+library(writexl)  # export Excel (B3)
+```
+
+
