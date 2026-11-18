@@ -408,3 +408,62 @@ ampl_max <- amplitude |> slice_max(amplitude_moy, n = 1)
 
 C'est à `r ampl_max$station` que l'amplitude thermique quotidienne moyenne est la plus forte (`r round(ampl_max$amplitude_moy, 1)` °C). Les jours où `temp_max` manque sont exclus du calcul.
 
+
+
+## C3. Les vins
+
+### a.
+
+```{r}
+vins <- read_excel("data/wines.xlsx")
+
+vins_long <- vins |>
+  pivot_longer(rest1:tasting9,
+               names_to = c("etape", "descripteur"),
+               names_pattern = "([a-z]+)([0-9]+)",
+               values_to = "note")
+vins_long |> select(Wines, Soul, etape, descripteur, note)
+count(vins_long, etape)
+```
+
+### b.
+
+```{r}
+vins_etapes <- vins_long |>
+  group_by(Wines, etape) |>
+  summarise(note_moy = mean(note, na.rm = TRUE), .groups = "drop") |>
+  pivot_wider(names_from = etape, values_from = note_moy) |>
+  select(Wines, rest, view, shaking, tasting)
+vins_etapes
+```
+
+### c.
+
+```{r}
+top_tasting <- vins_etapes |>
+  slice_max(tasting, n = 3) |>
+  left_join(distinct(vins, Wines, Soul), by = "Wines") |>
+  select(Wines, tasting, Soul)
+top_tasting
+```
+
+Les meilleurs vins en bouche sont `r paste0(top_tasting$Wines, " (", round(top_tasting$tasting, 2), ")", collapse = ", ")` : il y a une égalité pour la 3e place, d'où 4 vins. Ils ont tous le même type de sol : **`r unique(top_tasting$Soul)`**.
+
+### d.
+
+```{r}
+vins_cor <- vins |>
+  select(Wines, Global) |>
+  left_join(vins_etapes, by = "Wines")
+
+r_global <- cor(vins_cor$Global, vins_cor$tasting)
+r_global
+
+ggplot(vins_cor, aes(tasting, Global)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Note moyenne à l'étape tasting", y = "Note Global")
+```
+
+La corrélation entre la note `Global` et la moyenne à l'étape `tasting` vaut `r round(r_global, 2)` : les deux notes sont `r if (abs(r_global) > 0.7) "fortement" else "modérément"` liées, un vin bien noté en bouche reçoit en général une bonne note globale.
+
