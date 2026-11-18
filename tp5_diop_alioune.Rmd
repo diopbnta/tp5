@@ -626,3 +626,69 @@ emp_propre |>
 ```
 
 L'âge minimal à l'embauche est de `r min(emp_propre$age_embauche, na.rm = TRUE)` ans, et `r sum(emp_propre$age_embauche < 16, na.rm = TRUE)` employés ont été embauchés avant 16 ans. Ce n'est pas plausible : on n'embauche pas un adolescent de 15 ans comme consultant ou acheteur (Purchasing Agent), et l'âge légal du travail à temps plein est supérieur. Il s'agit très probablement d'erreurs de saisie de la date de naissance ou de la date d'embauche.
+
+
+
+## D4. Joindre les commandes et les clients
+
+### a.
+
+```{r}
+commandes <- read_csv("data/commandes.csv")
+clients   <- read_csv("data/customer.csv")
+dim(commandes); dim(clients)
+
+sans_client <- anti_join(commandes, clients, by = "Customer_ID")
+nrow(sans_client)
+```
+
+`anti_join()` renvoie `r nrow(sans_client)` ligne : `r if (nrow(sans_client) == 0) "chaque client des commandes figure bien dans le fichier clients" else "certains clients des commandes sont absents du fichier clients"`.
+
+### b.
+
+```{r}
+commandes_cli <- commandes |>
+  left_join(clients |> select(Customer_ID, Country, Gender), by = "Customer_ID")
+
+ca_pays <- commandes_cli |>
+  group_by(Country) |>
+  summarise(CA = sum(Total_Retail_Price)) |>
+  mutate(part = CA / sum(CA)) |>
+  arrange(desc(CA))
+ca_pays
+
+part_us <- ca_pays$part[ca_pays$Country == "US"]
+```
+
+Les clients américains représentent **`r round(100 * part_us, 1)` %** du chiffre d'affaires.
+
+### c.
+
+```{r}
+avec_vendeur <- commandes |> filter(Employee_ID != 99999999)
+nrow(avec_vendeur)
+
+retrouvees <- semi_join(avec_vendeur, emp_propre, by = "Employee_ID")
+nrow(retrouvees)
+```
+
+```{r, include = FALSE}
+n_vendeurs <- n_distinct(avec_vendeur$Employee_ID)
+n_vend_rh  <- sum(unique(avec_vendeur$Employee_ID) %in% emp_propre$Employee_ID)
+```
+
+Sur `r nrow(avec_vendeur)` lignes de commandes avec vendeur, `r nrow(retrouvees)` retrouvent leur vendeur dans `emp_propre` (`r n_vend_rh` vendeurs distincts sur `r n_vendeurs`). C'est une toute petite partie (`r round(100 * nrow(retrouvees) / nrow(avec_vendeur), 1)` %) : les deux fichiers ne décrivent pas la même population. Le fichier RH est un extrait (235 employés) qui ne contient pas la plupart des vendeurs des commandes ; on ne peut donc pas l'utiliser comme référentiel complet des vendeurs, et toute analyse par vendeur ne portera que sur ces `r nrow(retrouvees)` lignes.
+
+### d.
+
+```{r}
+top_vendeur <- avec_vendeur |>
+  group_by(Employee_ID) |>
+  summarise(CA = sum(Total_Retail_Price)) |>
+  inner_join(emp_propre |> select(Employee_ID, First, Last, Job_Title),
+             by = "Employee_ID") |>
+  arrange(desc(CA))
+head(top_vendeur, 5)
+```
+
+Le vendeur ayant réalisé le plus gros CA est **`r top_vendeur$First[1]` `r top_vendeur$Last[1]`**, `r top_vendeur$Job_Title[1]`, avec un CA de `r format(round(top_vendeur$CA[1], 2), nsmall = 2)` (parmi les vendeurs retrouvés dans le fichier RH).

@@ -396,6 +396,8 @@ format long</a></li>
 diagnostiquer</a></li>
 <li><a href="#d2.-corriger" id="toc-d2.-corriger">D2. Corriger</a></li>
 <li><a href="#d3.-analyser" id="toc-d3.-analyser">D3. Analyser</a></li>
+<li><a href="#d4.-joindre-les-commandes-et-les-clients" id="toc-d4.-joindre-les-commandes-et-les-clients">D4. Joindre les
+commandes et les clients</a></li>
 </ul></li>
 </ul>
 </div>
@@ -1460,6 +1462,84 @@ adolescent de 15 ans comme consultant ou acheteur (Purchasing Agent), et
 l’âge légal du travail à temps plein est supérieur. Il s’agit très
 probablement d’erreurs de saisie de la date de naissance ou de la date
 d’embauche.</p>
+</div>
+</div>
+<div id="d4.-joindre-les-commandes-et-les-clients" class="section level2">
+<h2>D4. Joindre les commandes et les clients</h2>
+<div id="a.-9" class="section level3">
+<h3>a.</h3>
+<pre class="r"><code>commandes &lt;- read_csv(&quot;data/commandes.csv&quot;)
+clients   &lt;- read_csv(&quot;data/customer.csv&quot;)
+dim(commandes); dim(clients)</code></pre>
+<pre><code>## [1] 617  10</code></pre>
+<pre><code>## [1] 77  9</code></pre>
+<pre class="r"><code>sans_client &lt;- anti_join(commandes, clients, by = &quot;Customer_ID&quot;)
+nrow(sans_client)</code></pre>
+<pre><code>## [1] 0</code></pre>
+<p><code>anti_join()</code> renvoie 0 ligne : chaque client des
+commandes figure bien dans le fichier clients.</p>
+</div>
+<div id="b.-9" class="section level3">
+<h3>b.</h3>
+<pre class="r"><code>commandes_cli &lt;- commandes |&gt;
+  left_join(clients |&gt; select(Customer_ID, Country, Gender), by = &quot;Customer_ID&quot;)
+
+ca_pays &lt;- commandes_cli |&gt;
+  group_by(Country) |&gt;
+  summarise(CA = sum(Total_Retail_Price)) |&gt;
+  mutate(part = CA / sum(CA)) |&gt;
+  arrange(desc(CA))
+ca_pays</code></pre>
+<pre><code>## # A tibble: 7 × 3
+##   Country     CA   part
+##   &lt;chr&gt;    &lt;dbl&gt;  &lt;dbl&gt;
+## 1 US      43525. 0.435 
+## 2 AU      17321. 0.173 
+## 3 DE      15395. 0.154 
+## 4 CA      11951. 0.119 
+## 5 TR       5176. 0.0517
+## 6 ZA       5150. 0.0515
+## 7 IL       1560. 0.0156</code></pre>
+<pre class="r"><code>part_us &lt;- ca_pays$part[ca_pays$Country == &quot;US&quot;]</code></pre>
+<p>Les clients américains représentent <strong>43.5 %</strong> du
+chiffre d’affaires.</p>
+</div>
+<div id="c.-8" class="section level3">
+<h3>c.</h3>
+<pre class="r"><code>avec_vendeur &lt;- commandes |&gt; filter(Employee_ID != 99999999)
+nrow(avec_vendeur)</code></pre>
+<pre><code>## [1] 324</code></pre>
+<pre class="r"><code>retrouvees &lt;- semi_join(avec_vendeur, emp_propre, by = &quot;Employee_ID&quot;)
+nrow(retrouvees)</code></pre>
+<pre><code>## [1] 15</code></pre>
+<p>Sur 324 lignes de commandes avec vendeur, 15 retrouvent leur vendeur
+dans <code>emp_propre</code> (7 vendeurs distincts sur 100). C’est une
+toute petite partie (4.6 %) : les deux fichiers ne décrivent pas la même
+population. Le fichier RH est un extrait (235 employés) qui ne contient
+pas la plupart des vendeurs des commandes ; on ne peut donc pas
+l’utiliser comme référentiel complet des vendeurs, et toute analyse par
+vendeur ne portera que sur ces 15 lignes.</p>
+</div>
+<div id="d.-4" class="section level3">
+<h3>d.</h3>
+<pre class="r"><code>top_vendeur &lt;- avec_vendeur |&gt;
+  group_by(Employee_ID) |&gt;
+  summarise(CA = sum(Total_Retail_Price)) |&gt;
+  inner_join(emp_propre |&gt; select(Employee_ID, First, Last, Job_Title),
+             by = &quot;Employee_ID&quot;) |&gt;
+  arrange(desc(CA))
+head(top_vendeur, 5)</code></pre>
+<pre><code>## # A tibble: 5 × 5
+##   Employee_ID    CA First   Last       Job_Title           
+##         &lt;dbl&gt; &lt;dbl&gt; &lt;chr&gt;   &lt;chr&gt;      &lt;chr&gt;               
+## 1      120732  668. Kent    Uenking    Purchasing Agent III
+## 2      120733  619. Michael Bezinque   Purchasing Agent I  
+## 3      120190  240  Ivor    Czernezkyi Trainee             
+## 4      120195  224. Jina    Fiocca     Trainee             
+## 5      121127  179. Keyna   Mangini    Trainee</code></pre>
+<p>Le vendeur ayant réalisé le plus gros CA est <strong>Kent
+Uenking</strong>, Purchasing Agent III, avec un CA de 668.10 (parmi les
+vendeurs retrouvés dans le fichier RH).</p>
 </div>
 </div>
 </div>
