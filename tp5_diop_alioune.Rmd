@@ -459,11 +459,78 @@ vins_cor <- vins |>
 r_global <- cor(vins_cor$Global, vins_cor$tasting)
 r_global
 
-ggplot(vins_cor, aes(tasting, Global)) +
-  geom_point() +
-  geom_smooth(method = "lm", se = FALSE) +
-  labs(x = "Note moyenne à l'étape tasting", y = "Note Global")
+
 ```
 
 La corrélation entre la note `Global` et la moyenne à l'étape `tasting` vaut `r round(r_global, 2)` : les deux notes sont `r if (abs(r_global) > 0.7) "fortement" else "modérément"` liées, un vin bien noté en bouche reçoit en général une bonne note globale.
+
+
+
+# Partie D : Nettoyer un fichier RH et joindre des tables
+
+## D1. Importer et diagnostiquer
+
+```{r}
+emp <- read_csv("data/employee.csv")
+glimpse(emp)
+summary(emp)
+```
+
+On examine chaque variable :
+
+```{r}
+count(emp, Country)
+count(emp, Gender)
+emp |> filter(is.na(Employee_ID))
+emp |> group_by(Employee_ID) |> filter(n() > 1)
+emp |> arrange(Salary) |> head(4)
+emp |> arrange(desc(Salary)) |> head(3)
+
+# Dates : on les convertit (temporairement) pour les contrôler
+emp_dates <- emp |>
+  mutate(naiss = dmy(Birth_Date), embauche = dmy(Hire_Date),
+         age = time_length(interval(naiss, embauche), "years"))
+emp_dates |> filter(is.na(embauche))
+emp_dates |> filter(year(embauche) < 1974) |> select(Employee_ID:Last, Birth_Date, Hire_Date, age)
+emp_dates |> filter(age < 18) |> select(Employee_ID:Last, Job_Title, Birth_Date, Hire_Date, age)
+range(emp_dates$naiss)
+```
+
+Récapitulatif des anomalies :
+
+```{r}
+anomalies <- tibble(
+  anomalie = c(
+    "Employee_ID manquant",
+    "Employee_ID en double (deux personnes différentes)",
+    "Gender manquant",
+    "Gender incohérent (autre que F / M)",
+    "Country en minuscules (au, us)",
+    "Salary manquant",
+    "Salary < 10 000 (zéro oublié)",
+    "Salary très élevé (> 300 000, à vérifier)",
+    "Hire_Date manquante",
+    "Hire_Date antérieure à 1974 (création de l'enseigne)",
+    "Hire_Date antérieure à la naissance",
+    "Âge à l'embauche entre 0 et 16 ans (embauche très jeune)"
+  ),
+  n_lignes = c(
+    sum(is.na(emp$Employee_ID)),
+    emp |> filter(!is.na(Employee_ID)) |> group_by(Employee_ID) |> filter(n() > 1) |> nrow(),
+    sum(is.na(emp$Gender)),
+    sum(!emp$Gender %in% c("F", "M") & !is.na(emp$Gender)),
+    sum(emp$Country %in% c("au", "us")),
+    sum(is.na(emp$Salary)),
+    sum(emp$Salary < 10000, na.rm = TRUE),
+    sum(emp$Salary > 300000, na.rm = TRUE),
+    sum(is.na(emp_dates$embauche)),
+    sum(year(emp_dates$embauche) < 1974, na.rm = TRUE),
+    sum(emp_dates$embauche < emp_dates$naiss, na.rm = TRUE),
+    sum(emp_dates$age >= 0 & emp_dates$age < 16, na.rm = TRUE)
+  )
+)
+knitr::kable(anomalies)
+```
+
+Il n'y a pas de ligne entièrement dupliquée (`sum(duplicated(emp))` = `r sum(duplicated(emp))`) : le « doublon » est un identifiant partagé par deux employées différentes. Le salaire de `r format(max(emp$Salary, na.rm = TRUE), big.mark = " ")` correspond au poste de `r emp$Job_Title[which.max(emp$Salary)]` : il est très élevé mais plausible, on le conserve.
 
