@@ -534,3 +534,48 @@ knitr::kable(anomalies)
 
 Il n'y a pas de ligne entièrement dupliquée (`sum(duplicated(emp))` = `r sum(duplicated(emp))`) : le « doublon » est un identifiant partagé par deux employées différentes. Le salaire de `r format(max(emp$Salary, na.rm = TRUE), big.mark = " ")` correspond au poste de `r emp$Job_Title[which.max(emp$Salary)]` : il est très élevé mais plausible, on le conserve.
 
+
+## D2. Corriger
+
+```{r}
+date_ref <- dmy("31/12/2007")
+
+emp_propre <- emp |>
+  mutate(
+    # Pays : codes harmonisés en majuscules (au -> AU, us -> US)
+    Country = toupper(Country),
+    # Sexe : tout ce qui n'est pas F ou M devient NA
+    Gender = if_else(Gender %in% c("F", "M"), Gender, NA),
+    # Salaires < 10 000 : un zéro a été oublié -> x 10
+    Salary = if_else(Salary < 10000, Salary * 10, Salary),
+    # Dates au format jj/mm/aaaa -> classe Date
+    Birth_Date = dmy(Birth_Date),
+    Hire_Date  = dmy(Hire_Date),
+    # Embauche avant la création de l'enseigne (1974) : impossible -> NA
+    Hire_Date = if_else(year(Hire_Date) < 1974, as.Date(NA), Hire_Date),
+    # Identifiant manquant : plus grand identifiant existant + 1
+    Employee_ID = if_else(is.na(Employee_ID),
+                          max(Employee_ID, na.rm = TRUE) + 1,
+                          Employee_ID),
+    # Âge en années révolues à l'embauche
+    age_embauche = floor(time_length(interval(Birth_Date, Hire_Date), "years")),
+    # Ancienneté en années (révolues) au 31/12/2007
+    anciennete = floor(time_length(interval(Hire_Date, date_ref), "years"))
+  )
+```
+
+Vérifications :
+
+```{r}
+count(emp_propre, Country)
+count(emp_propre, Gender)
+sum(is.na(emp_propre$Employee_ID))
+emp_propre |> filter(Employee_ID == max(Employee_ID)) |> select(Employee_ID:Last)
+sum(emp_propre$Salary < 10000, na.rm = TRUE)
+class(emp_propre$Birth_Date); class(emp_propre$Hire_Date)
+sum(year(emp_propre$Hire_Date) < 1974, na.rm = TRUE)
+sum(emp_propre$Hire_Date < emp_propre$Birth_Date, na.rm = TRUE)
+summary(emp_propre[, c("age_embauche", "anciennete")])
+```
+
+Les anomalies visées par les corrections ont disparu : plus de pays en minuscules, plus de code de sexe autre que F/M, plus d'identifiant manquant, plus de salaire < 10 000, plus d'embauche avant 1974 (ni, du coup, avant la naissance). Restent, car non demandées dans la liste : le salaire manquant, l'identifiant 120108 partagé par deux personnes et les deux embauches à 15 ans (voir D3d) ; les dates d'embauche invalidées sont désormais des NA.
